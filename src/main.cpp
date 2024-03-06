@@ -4,58 +4,145 @@
 
 #include "Config.hpp"
 
-class Entity
+class Transform2D
 {
 public:
-    Entity(const Texture2D &texture, Vector2 size, Vector2 position, Vector2 source = {0.f, 0.f}) noexcept
+    Transform2D(const Vector2 &position = {0.f, 0.f}, const Vector2 &size = {16.f, 16.f}, const float rotation = 0.f) noexcept
     {
-        this->texture = texture;
-        this->transform = {position.x, position.y, size.x, size.y};
-        this->source_transform = {source.x, source.y, (float) (texture.width / (256 / 16)), (float) (texture.height / (256 / 16))};
-        this->origin = {0, 0};
-
+        this->setPosition(position);
+        this->setRotation(rotation);
+        this->setSize(size);
     }
 
-    virtual void draw() noexcept
+    virtual void setPosition(const Vector2 &position) noexcept
     {
-        DrawTexturePro(texture, source_transform, transform, origin, 0, WHITE);
+        this->__position = position;
+    }
+    const Vector2 &getPosition() const noexcept
+    {
+        return this->__position;
+    }
+    virtual void setSize(const Vector2 &size) noexcept
+    {
+        this->__size = size;
+    }
+    const Vector2 &getSize() const noexcept
+    {
+        return this->__size;
+    }
+    virtual void setRotation(const float rotation) noexcept
+    {
+        this->__rotation = rotation;
+    }
+    const float &getRotation() const noexcept
+    {
+        return this->__rotation;
     }
 
-    virtual ~Entity()
+    virtual ~Transform2D() noexcept
     {
     }
-
-    Texture2D texture;
-    Rectangle transform, source_transform;
-    Vector2 origin;
+private:
+    Vector2 __position, __size;
+    float __rotation;
 };
 
-int main(int argc, char *argv[])
+class Sprite : public Transform2D
+{
+public:
+    Sprite(const Texture2D &texture, const Vector2 &position = {0.f, 0.f}, const Vector2 &size = {16.f, 16.f}, const float rotation = 0.f)
+        : Transform2D(position, size, rotation)
+    {
+        this->__texture = &texture;
+        this->setOrigin({0.f, 0.f});
+        this->setTextureRect({0.f, 0.f, this->getSize().x, this->getSize().y});
+    }
+
+    virtual void setOrigin(const Vector2 origin) noexcept
+    {
+        this->__origin = origin;
+    }
+    const Vector2 &getOrigin() const noexcept
+    {
+        return this->__origin;
+    }
+    virtual void setTextureRect(const Rectangle &texture_rect) noexcept
+    {
+        this->__texture_rect = texture_rect;
+    }
+    const Rectangle &getTextureRect() const noexcept
+    {
+        return this->__texture_rect;
+    }
+
+    virtual void draw() const noexcept
+    {
+        DrawTexturePro(*this->__texture,
+            this->getTextureRect(),
+            {this->getPosition().x, this->getPosition().y, this->getSize().x, this->getSize().y},
+            this->__origin, this->getRotation(), WHITE);
+    }
+
+    virtual ~Sprite()
+    {
+    }
+private:
+    const Texture2D *__texture;
+    Rectangle __texture_rect;
+    Vector2 __origin;
+};
+
+class Tile : public Sprite
+{
+public:
+    Tile(const Texture2D &texture, const Vector2 &position = {0.f, 0.f}, const Rectangle &texture_rect = {0.f, 0.f, 16.f, 16.f}, const Vector2 &size = {16.f, 16.f}, const float resistence = 1.f)
+        : Sprite(texture, position, size, 0.f)
+    {
+        this->setResistence(resistence);
+        this->setTextureRect(texture_rect);
+    }
+
+    virtual void setResistence(const float resistence) noexcept
+    {
+        this->__resistence = resistence;
+    }
+    const float &getResistence() const noexcept
+    {
+        return this->__resistence;
+    }
+
+    virtual ~Tile()
+    {
+    }
+private:
+    float __resistence;
+};
+
+Texture2D tileset_default_world;
+
+int main(int, char *[])
 {
     srand(time(NULL));
-    // unused
-    (void)argc;
-    (void)argv;
-
     InitWindow(1280, 720, "World Generator");
     SetTargetFPS(60);
-    Texture2D tileset_main_001 = LoadTexture("assets/tileset/main-001.png");
-    std::vector<Entity> world;
-    Vector2 camera = {0.f, 0.f};
 
-    int y_max = rand() % 20 + 2;
-    for(int x = 0; x < 128; x++)
+    std::vector<Tile> world;
+    tileset_default_world = LoadTexture("assets/tileset/world-001.png");
+
+    int max_y = rand() % 25 + 4;
+    for(int x = 0; x < 25; x++)
     {
-        for(int y = 0; y < y_max; y++)
+        for(int y = 0; y < max_y; y++)
         {
-            Vector2 source = {0.f, 0.f};
-            if(y == 0) source = {16.f, 0.f};
-            if(y > 5) source = {16.f * 2.f, 0.f};
-            world.push_back(Entity(tileset_main_001, {32.f, 32.f}, {32.f * x, 32.f * y + 612 - (32.f * y_max)}, source));
+            Rectangle texture_rect = {0.f, 0.f, TILE_TEXTURE_SIZE, TILE_TEXTURE_SIZE};
+            if(y == 0)
+                texture_rect.x = TILE_TEXTURE_SIZE;
+            if(y > 5)
+                texture_rect.x = TILE_TEXTURE_SIZE * 2.f;
+
+            world.push_back(Tile(tileset_default_world, {TILE_SIZE * x, TILE_SIZE * y - (max_y * TILE_SIZE) + 720.f}, texture_rect, {TILE_SIZE, TILE_SIZE}));
         }
-        y_max += rand() % 2 == 0 ? 1 : -1;
-        if(y_max < 2)
-            y_max = 2;
+        max_y += rand() % 2 == 0 ? -1 : 1;
     }
 
     while (!WindowShouldClose())
@@ -63,18 +150,13 @@ int main(int argc, char *argv[])
         BeginDrawing();
         ClearBackground(BLACK);
 
-        for(auto block : world)
-        {
-            block.transform.x += camera.x;
+        for(Tile block : world)
             block.draw();
-        }
 
         EndDrawing();
-        camera.x -= 1.f;
     }
+    UnloadTexture(tileset_default_world);
 
-    UnloadTexture(tileset_main_001);
     CloseWindow();
-
     return EXIT_SUCCESS;
 }
