@@ -9,7 +9,8 @@
 #define UI_GAP 4.f
 #define PLAYER_SPEED 4.f
 #define INVENTORY_SLOT_SIZE 36.f
-#define BUTTON_SIZE 32.f
+#define BUTTON_SIZE 158.f
+#define HORIZONTAL_BUTTON_GAP 16.f
 
 #define DIAMOND_ORE_RARITY = 29.f
 #define COAL_ORE_RARITY = 18.f
