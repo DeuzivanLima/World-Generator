@@ -42,8 +42,10 @@ class Sprite : public Transform2D
 {
 public:
     Sprite(Texture2D *texture, const Rectangle translation = {0.f, 0.f, DEFAULT_RECTANGLE_SIZE, DEFAULT_RECTANGLE_SIZE}, const Rectangle texture_translation = {0.f, 0.f, TILE_TEXTURE_SIZE, TILE_TEXTURE_SIZE}, const float rotation = 0.f) noexcept
-            : Transform2D(translation, rotation), __texture_translation{texture_translation}, __texture{texture}
+            : Transform2D(translation, rotation), __texture_translation{texture_translation}, __texture{texture}, __origin {0.f, 0.f}
     {
+        if(rotation > 0)
+            this->__origin = {translation.width, translation.height};
     }
 
     virtual void draw(Camera2D camera = {.offset = {0.f, 0.f}}) const noexcept
@@ -53,7 +55,7 @@ public:
         translation_relative_on_camera.x += camera.offset.x;
         translation_relative_on_camera.y += camera.offset.y;
 
-        DrawTexturePro(*this->__texture, this->__texture_translation, translation_relative_on_camera, {0.f, 0.f}, this->getRotation(), WHITE);
+        DrawTexturePro(*this->__texture, this->__texture_translation, translation_relative_on_camera, this->__origin, this->getRotation(), WHITE);
     }
 
     virtual ~Sprite()
@@ -63,6 +65,7 @@ public:
 private:
     Rectangle __texture_translation;
     Texture2D *__texture;
+    Vector2 __origin;
 };
 
 class Chunk final
@@ -114,9 +117,10 @@ int main(int, char *[])
     Camera2D camera = {.offset = {0.f, 0.f}};
 
     Sprite
-            button_generate_chunk(&tileset_main, {GetScreenWidth() - 250.f, 100.f, BUTTON_SIZE, BUTTON_SIZE}, {TILE_TEXTURE_SIZE, TILE_TEXTURE_SIZE, TILE_TEXTURE_SIZE, TILE_TEXTURE_SIZE}),
+            button_menu(&tileset_main, {GetScreenWidth() - 250.f, 100.f, BUTTON_SIZE, BUTTON_SIZE}, {TILE_TEXTURE_SIZE * 2.f, TILE_TEXTURE_SIZE * 2.f, TILE_TEXTURE_SIZE, TILE_TEXTURE_SIZE}),
             button_action(&tileset_main, {GetScreenWidth() - 250.f, GetScreenHeight() - 250.f, BUTTON_SIZE, BUTTON_SIZE}, {TILE_TEXTURE_SIZE, TILE_TEXTURE_SIZE * 2.f, TILE_TEXTURE_SIZE, TILE_TEXTURE_SIZE}),
             button_left(&tileset_main, {100.f + BUTTON_SIZE + HORIZONTAL_BUTTON_GAP, GetScreenHeight() - 250.f, BUTTON_SIZE, BUTTON_SIZE}, {0.f, TILE_TEXTURE_SIZE, TILE_TEXTURE_SIZE, TILE_TEXTURE_SIZE}),
+            button_jump(&tileset_main, {GetScreenWidth() - 100.f - BUTTON_SIZE - HORIZONTAL_BUTTON_GAP, GetScreenHeight() - 250.f, BUTTON_SIZE, BUTTON_SIZE}, {0.f, TILE_TEXTURE_SIZE, TILE_TEXTURE_SIZE, TILE_TEXTURE_SIZE}, 270.f),
             button_right(&tileset_main, {100.f, GetScreenHeight() - 250.f, BUTTON_SIZE, BUTTON_SIZE}, {0.f, TILE_TEXTURE_SIZE, -TILE_TEXTURE_SIZE, TILE_TEXTURE_SIZE});
 
     Chunk chunk(&tileset_main);
@@ -130,7 +134,7 @@ int main(int, char *[])
                 camera.offset.x -= 10.f;
             if(CheckCollisionPointRec(GetTouchPosition(i), button_right.getTranslation()))
                 camera.offset.x += 10.f;
-            if(CheckCollisionPointRec(GetTouchPosition(i), button_generate_chunk.getTranslation()))
+            if(CheckCollisionPointRec(GetTouchPosition(i), button_menu.getTranslation()))
                 chunk.generate();
         }
 
@@ -142,8 +146,9 @@ int main(int, char *[])
 
         button_left.draw();
         button_right.draw();
-        button_generate_chunk.draw();
+        button_menu.draw();
         button_action.draw();
+        button_jump.draw();
 
         EndDrawing();
     }

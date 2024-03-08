@@ -1,1 +1,0 @@
-/usr/bin/c++ "CMakeFiles/World-Generator.dir/src/main.cpp.o" -o World-Generator  deps/raylib/raylib/libraylib.a -lm -lpthread /usr/lib/x86_64-linux-gnu/libGL.so deps/raylib/raylib/external/glfw/src/libglfw3.a /usr/lib/x86_64-linux-gnu/librt.a -lm -ldl 
